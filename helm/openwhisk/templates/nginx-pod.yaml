@@ -63,14 +63,47 @@ spec:
           name: {{ .Release.Name }}-nginx
       - name: logs
         emptyDir: {}
+      - name: nginx-base-script
+        configMap:
+          name: {{ .Release.Name }}-nginx-script-js
+      - name: nginx-init-js
+        configMap:
+          name: {{ .Release.Name }}-nginx-init-js
+      - name: controller-data
+        persistentVolumeClaim:
+          claimName: {{ .Release.Name }}-controller-pvc
+      - name: nginx-config-refresh-script
+        configMap:
+          name: {{ .Release.Name }}-nginx-config-refresh-script
+          defaultMode: 0700
+      - name: nginx-bundle-script
 {{ include "openwhisk.docker.imagePullSecrets" . | indent 6 }}
       initContainers:
       # Wait for a controller to be up (which implies kafka, zookeeper, couchdb are all up as well).
+      - name: node-modules
+        image: node:16
+        command:
+        - bash
+        - -c
+        - |
+          npm install -g browserify
+          cp /nginx_init/load.js /tmp/load.js
+          cd /tmp/
+          npm install yamljs
+          npx browserify ./load.js -o ./njs_bundle.js
+          cp njs_bundle.js /njs_scripts/
+        volumeMounts:
+        - name: nginx-init-js
+          mountPath: "/nginx_init"
+        - name: nginx-bundle-script
+          mountPath: "/njs_scripts"
+
 {{ include "openwhisk.readiness.waitForController" . | indent 6 }}
       containers:
       - name: nginx
         image: "{{- .Values.docker.registry.name -}}{{- .Values.nginx.imageName -}}:{{- .Values.nginx.imageTag -}}"
         imagePullPolicy: {{ .Values.nginx.imagePullPolicy | quote }}
+        command: [ "/bin/bash", "-c", "cat /njs_scripts/njs_bundle.js /njs_scripts/script.js > /etc/nginx/script.js && ./refresh.sh && nginx -g 'daemon off;'" ]
         ports:
         - name: http
           containerPort: {{ .Values.nginx.httpPort }}
@@ -86,3 +119,14 @@ spec:
         {{- end }}
         - name: logs
           mountPath: "/logs"
+        - name: nginx-bundle-script
+          mountPath: "/njs_scripts/"
+        - name: nginx-base-script
+          mountPath: "/njs_scripts/script.js"
+          subPath: "script.js"
+        - name: nginx-config-refresh-script
+          mountPath: "/refresh.sh"
+          subPath: "refresh.sh"
+        - name: controller-data
+          mountPath: /data
+          readOnly: false

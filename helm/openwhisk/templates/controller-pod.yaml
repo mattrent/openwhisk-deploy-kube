@@ -48,14 +48,19 @@ spec:
       {{- if .Values.affinity.enabled }}
       affinity:
 {{ include "openwhisk.affinity.core" . | indent 8 }}
-{{ include "openwhisk.affinity.selfAntiAffinity" ( printf "%s-controller" .Release.Name ) | indent 8 }}
+{{ include "openwhisk.affinity.zoneSelfAntiAffinity" ( printf "%s-controller" .Release.Name ) | indent 8 }}
       {{- end }}
 
       {{- if .Values.toleration.enabled }}
       tolerations:
 {{ include "openwhisk.toleration.core" . | indent 8 }}
       {{- end }}
-
+{{- if .Values.k8s.persistence.enabled }}
+      volumes:
+      - name: controller-data
+        persistentVolumeClaim:
+          claimName: {{ .Release.Name }}-controller-pvc
+{{- end }}
       initContainers:
 {{- if not .Values.controller.lean }}
       # The controller must wait for kafka and/or couchdb to be ready before it starts
@@ -80,7 +85,7 @@ spec:
         securityContext:
           privileged: true
 {{- end }}
-        command: ["/bin/bash", "-c", "/init.sh `hostname | awk -F '-' '{print $NF}'`"]
+        command: ["/bin/bash", "-c", "cp configLB.yml /data/configLB.yml; /init.sh `hostname | awk -F '-' '{print $NF}'` ${CONTROLLER_NAME} ${CONFIG_whisk_loadbalancer_invoker_distribution}"]
         ports:
         - name: controller
           containerPort: {{ .Values.controller.port }}
@@ -107,6 +112,13 @@ spec:
           initialDelaySeconds: {{ .Values.probes.controller.readinessProbe.initialDelaySeconds }}
           periodSeconds: {{ .Values.probes.controller.readinessProbe.periodSeconds }}
           timeoutSeconds: {{ .Values.probes.controller.readinessProbe.timeoutSeconds }}
+{{- if .Values.k8s.persistence.enabled }}
+        volumeMounts:
+        - mountPath: /data
+          name: controller-data
+          readOnly: false
+{{- end }}
+
         env:
         - name: "PORT"
           value: {{ .Values.controller.port | quote }}
@@ -211,3 +223,9 @@ spec:
         - name: "CONFIG_whisk_helm_release"
           value: "{{ .Release.Name }}"
 {{- end }}
+        - name: "CONTROLLER_NAME"
+          valueFrom:
+            fieldRef:
+              fieldPath: {{ if eq .Values.invoker.containerFactory.impl "docker" }} spec.nodeName {{ else }} metadata.name {{ end }}
+        - name: "CONFIG_whisk_loadbalancer_invoker_distribution"
+          value: "{{ .Values.whisk.loadbalancer.invoker_distribution }}"

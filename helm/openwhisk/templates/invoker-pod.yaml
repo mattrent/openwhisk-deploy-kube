@@ -86,7 +86,7 @@ spec:
 {{- if and (eq .Values.invoker.containerFactory.impl "docker") .Values.invoker.containerFactory.networkConfig.dns.inheritInvokerConfig }}
         command: [ "/bin/bash", "-c", ". /invoker-scripts/configureDNS.sh && /init.sh --uniqueName $INVOKER_NAME" ]
 {{- else }}
-        command: [ "/bin/bash", "-c", "/init.sh --uniqueName $INVOKER_NAME" ]
+        command: [ "/bin/bash", "-c", "/init.sh --uniqueName $INVOKER_NAME-noDNS" ]
 {{- end }}
         env:
           - name: "PORT"
@@ -135,6 +135,9 @@ spec:
             valueFrom:
               fieldRef:
                 fieldPath: {{ if eq .Values.invoker.containerFactory.impl "docker" }} spec.nodeName {{ else }} metadata.name {{ end }}
+
+          - name: "INVOKER_LABELS"
+            value: ${kubectl get node $INVOKER_NAME -o jsonpath='{.metadata.labels.openwhisk-role}'}
 
           # Java options
           - name: "JAVA_OPTS"

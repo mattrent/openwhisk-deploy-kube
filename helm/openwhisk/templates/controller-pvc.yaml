@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Release.Name }}-controller-pvc
+  labels:
+{{ include "openwhisk.label_boilerplate" . | indent 4 }}
+spec:
+{{- if not .Values.k8s.persistence.hasDefaultStorageClass }}
+  storageClassName: {{ .Values.k8s.persistence.explicitStorageClass }}
+{{- end }}
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Mi

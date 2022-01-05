@@ -1,0 +1,66 @@
+{{ if eq .Values.invoker.containerFactory.impl "docker" }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-watcher
+  labels:
+    name: {{ .Release.Name }}-watcher
+{{ include "openwhisk.label_boilerplate" . | indent 4 }}
+spec:
+  selector:
+    matchLabels:
+      name: {{ .Release.Name }}-watcher
+  template:
+    metadata:
+      labels:
+        name: {{ .Release.Name }}-watcher
+{{ include "openwhisk.label_boilerplate" . | indent 8 }}
+    spec:
+      serviceAccountName: {{ .Release.Name }}-watcher
+      restartPolicy: "Always"
+      {{- if .Values.affinity.enabled }}
+      affinity:
+        # same node as nginx, to minimize latency issues with config updates
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: name
+                operator: In
+                values:
+                - {{ .Release.Name }}-nginx
+            topologyKey: "kubernetes.io/hostname"
+      {{- end }}
+
+      {{- if .Values.toleration.enabled }}
+      tolerations:
+{{ include "openwhisk.toleration.edge" . | indent 8 }}
+      {{- end }}
+
+      volumes:
+      - name: watcher-watch-nodes
+        configMap:
+          name: {{ .Release.Name }}-watcher-watch-nodes
+      - name: controller-data
+        persistentVolumeClaim:
+          claimName: {{ .Release.Name }}-controller-pvc
+      - name: nginx-conf
+        configMap:
+          name: {{ .Release.Name }}-nginx
+
+{{ include "openwhisk.docker.imagePullSecrets" . | indent 6 }}
+      containers:
+      - name: watcher
+        image: everpeace/curl-jq
+        imagePullPolicy: "IfNotPresent"
+        command: [ "bash", "-c", ". /watch_nodes.sh" ]
+        volumeMounts:
+        - name: controller-data
+          mountPath: /data
+        - name: nginx-conf
+          mountPath: "/tmp/nginx.conf"
+          subPath: "nginx.conf"
+        - name: watcher-watch-nodes
+          mountPath: /watch_nodes.sh
+          subPath: watch_nodes.sh
+{{- end }}

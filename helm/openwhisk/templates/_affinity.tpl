@@ -111,3 +111,27 @@ podAntiAffinity:
         - {{ . }}
     topologyKey: "kubernetes.io/hostname"
 {{- end -}}
+
+{{/* Same zone + self anti-affinity */}}
+{{- define "openwhisk.affinity.zoneSelfAntiAffinity" -}}
+# Fault tolerance: prevent multiple instances of {{ . }} from running on the same node; tries to avoid multiple instances from running in the same topology zone
+podAntiAffinity:
+  requiredDuringSchedulingIgnoredDuringExecution:
+  - labelSelector:
+      matchExpressions:
+      - key: name
+        operator: In
+        values:
+        - {{ . }}
+    topologyKey: "kubernetes.io/hostname"
+  preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 100
+      podAffinityTerm:
+        labelSelector:
+          matchExpressions:
+          - key: name
+            operator: In
+            values:
+            - {{ . }}
+        topologyKey: "kubernetes.io/zone"
+{{- end -}}

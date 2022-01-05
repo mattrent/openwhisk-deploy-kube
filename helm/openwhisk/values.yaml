@@ -96,6 +96,7 @@ whisk:
   loadbalancer:
     blackboxFraction: "10%"
     timeoutFactor: 2
+    invoker_distribution: "default"
   # Kafka configuration. For all sub-fields a value of "" means use the default from application.conf
   kafka:
     replicationFactor: ""

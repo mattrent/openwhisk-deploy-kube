@@ -1,0 +1,9 @@
+{{- if and (eq .Values.invoker.containerFactory.impl "docker") (not .Values.controller.lean) }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ .Release.Name }}-watcher
+  labels:
+{{ include "openwhisk.label_boilerplate" . | indent 4 }}
+{{- end }}

@@ -171,7 +171,8 @@
           "type": "object",
           "properties": {
             "blackboxFraction": { "type": "string" },
-            "timeoutFactor": { "type": "number" }
+            "timeoutFactor": { "type": "number" },
+            "invoker_distribution": {"type": "string", "enum": ["shared", "default", "min_memory", "isolated"] }
           }
         }
       },

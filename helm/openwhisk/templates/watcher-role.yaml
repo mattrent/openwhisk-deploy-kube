@@ -1,0 +1,25 @@
+{{ if eq .Values.invoker.containerFactory.impl "docker" }}
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: {{ .Release.Name }}-nodes-list
+  labels:
+{{ include "openwhisk.label_boilerplate" . | indent 4 }}
+rules:
+- apiGroups: [""]
+  resources: ["nodes"]
+  verbs: ["list"]
+
+---
+
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: {{ .Release.Name }}-pods-list
+  labels:
+{{ include "openwhisk.label_boilerplate" . | indent 4 }}
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["list"]
+{{- end }}

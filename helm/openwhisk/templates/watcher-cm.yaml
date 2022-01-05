@@ -1,0 +1,24 @@
+{{ if eq .Values.invoker.containerFactory.impl "docker" }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-watcher-watch-nodes
+  labels:
+{{ include "openwhisk.label_boilerplate" . | indent 4 }}
+
+data:
+  watch_nodes.sh: |
+     while sleep 60; do \
+
+       curl -sk \
+       -H "Authorization: Bearer $(cat /var/run/secrets/kubernetes.io/serviceaccount/token)" \
+       https://kubernetes.default.svc.cluster.local/api/v1/namespaces/{{ .Release.Namespace }}/pods \
+       | jq '[.items[] | select(.metadata.labels.name == "{{.Release.Name}}-controller")] | map( { (.spec.nodeName) : .metadata.name } ) | add' >/data/node_pod_map.json; \
+
+       curl -sk \
+       -H "Authorization: Bearer $(cat /var/run/secrets/kubernetes.io/serviceaccount/token)" \
+        https://kubernetes.default.svc.cluster.local/api/v1/nodes | jq '.items | map( { (.metadata.name) : .metadata.labels.zone } ) | add' >/data/node_zone_map.json; \
+
+     done
+
+{{- end }}
