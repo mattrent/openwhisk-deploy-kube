@@ -37,8 +37,8 @@ data:
   refresh.sh: |
     function update {
       echo "Updating config...";
-      cp /data/configLB.yml /configLB.yml;
-      cp /data/node_pod_map.json /node_pod_map.json;
+      cp /data/configLB.yml /tmp/configLB.yml;
+      cp /data/node_pod_map.json /tmp/node_pod_map.json;
     }
 
     DATA='/data/'
@@ -63,8 +63,8 @@ data:
   script.js: |
     var fs = require('fs');
     var js_yaml = global.js_yaml;
-    var mapping_path = "/node_pod_map.json";
-    var configLB_path = "/configLB.yml";
+    var mapping_path = "/tmp/node_pod_map.json";
+    var configLB_path = "/tmp/configLB.yml";
     var logs_path = "/logs/nginx_multipleLB_logs.txt";
 
     function redirect(r, upstream, _nginx_openwhisk_policy_index) {
@@ -96,8 +96,8 @@ data:
         var new_config = fs.readFileSync("/data/configLB.yml");
         var new_mapping = fs.readFileSync("/data/node_pod_map.json");
 
-        fs.writeFileSync("/logs/configLB.yml", new_config);
-        fs.writeFileSync("/logs/node_pod_map.json", new_mapping);
+        fs.writeFileSync("/tmp/configLB.yml", new_config);
+        fs.writeFileSync("/tmp/node_pod_map.json", new_mapping);
       }
 
       if (r.method == "POST" && action_tag != "") {
@@ -109,8 +109,6 @@ data:
 
             var re = new RegExp('^\/api\/v1\/namespaces\/[\w_]+\/actions\/');
             var action = r.uri.replace(re, "");
-
-            // var controller_node = yaml_conf[action_tag] ? yaml_conf[action_tag].find(function(obj) { return (obj['controller'] != undefined) })['controller'] : undefined
 
             var action_policy = yaml_conf[action_tag];
             var policy_blocks = [];
@@ -136,8 +134,6 @@ data:
               }
 
             }
-
-            fs.writeFileSync(logs_path, "INDEX: " + chosen_policy + "\n" + "CONTROLLER: " + controller_node + "\n");
 
             selected_upstream_njs = ((controller_node && controller_node != '*') ? mapping[controller_node] : undefined) || "controllers";
 
