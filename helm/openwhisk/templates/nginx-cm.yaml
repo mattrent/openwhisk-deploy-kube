@@ -69,9 +69,7 @@ data:
 
     function redirect(r, upstream, _nginx_openwhisk_policy_index) {
         var args = ("?" + r.variables.args) || "";
-        if (_nginx_openwhisk_policy_index >= 0) {
-          args = args + "&nginx_openwhisk_policy_index=" + _nginx_openwhisk_policy_index;
-        }
+        args = args + "&nginx_openwhisk_policy_index=" + _nginx_openwhisk_policy_index;
         r.variables['selected_upstream'] = upstream;
         r.internalRedirect('/controllers' + r.uri + args);
     }
@@ -112,7 +110,7 @@ data:
 
             var action_policy = yaml_conf[action_tag];
             var policy_blocks = [];
-            var chosen_policy = undefined;
+            var chosen_policy = 0;
             var controller_node = '*'
 
             if (action_policy) {
@@ -141,7 +139,7 @@ data:
           }
         })
       } else {
-        redirect(r, selected_upstream_njs, -1)
+        redirect(r, selected_upstream_njs, 0)
       }
     }
     export default {select_upstream}
