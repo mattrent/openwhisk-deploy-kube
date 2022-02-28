@@ -37,8 +37,8 @@ data:
   refresh.sh: |
     function update {
       echo "Updating config...";
-      cp /data/configLB.yml /tmp/configLB.yml;
-      cp /data/node_pod_map.json /tmp/node_pod_map.json;
+      cp /data/configLB.yml /tmp/configLB.yml; chown nginx:nginx /tmp/configLB.yml;
+      cp /data/node_pod_map.json /tmp/node_pod_map.json; chown nginx:nginx /tmp/node_pod_map.json;
     }
 
     DATA='/data/'
