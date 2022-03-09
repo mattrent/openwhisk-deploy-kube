@@ -15,3 +15,7 @@ To perform the tests:
 - for the `slackpost` test, the `Jslackpath` parameter is required
 - for the `mongoDB` and `data-locality` test, the `Jdbip`, `Jusername`, `Jpassword`, `Jdbname` parameters are required
 - for `terrain`, `mongoDB` and `data-locality` tests using the modified version, the `Jtag` and `Jtolerance` parameters are required
+
+___
+
+The `wonderless_discarded.csv` file contains a list of the analysed repositories in the Wonderless dataset; each of them has either been discarded for a specific reason (listed in the file) or used as part of the test suite.
