@@ -13,11 +13,15 @@ data:
        curl -sk \
        -H "Authorization: Bearer $(cat /var/run/secrets/kubernetes.io/serviceaccount/token)" \
        https://kubernetes.default.svc.cluster.local/api/v1/namespaces/{{ .Release.Namespace }}/pods \
-       | jq '[.items[] | select(.metadata.labels.name == "{{.Release.Name}}-controller")] | map( { (.spec.nodeName) : .metadata.name } ) | add' >/data/node_pod_map.json; \
+       | jq '[.items[] | select(.metadata.labels.name == "{{.Release.Name}}-controller")] | map( { (.spec.nodeName) : .metadata.name } ) | add | with_entries( select( .value != null ) )' >/data/node_pod_map.json; \
 
        curl -sk \
        -H "Authorization: Bearer $(cat /var/run/secrets/kubernetes.io/serviceaccount/token)" \
-        https://kubernetes.default.svc.cluster.local/api/v1/nodes | jq '.items | map( { (.metadata.name) : .metadata.labels.zone } ) | add' >/data/node_zone_map.json; \
+        https://kubernetes.default.svc.cluster.local/api/v1/nodes | jq '.items | map( { (.metadata.name) : .metadata.labels.zone } ) | add | with_entries( select( .value != null ) )' >/data/node_zone_map.json; \
+
+       curl -sk \
+       -H "Authorization: Bearer $(cat /var/run/secrets/kubernetes.io/serviceaccount/token)" \
+        https://kubernetes.default.svc.cluster.local/api/v1/nodes | jq '.items | map( { (.metadata.name) : .metadata.labels["openwhisk-tapp-label"] } ) | add | with_entries( select( .value != null ) )' >/data/node_label_map.json; \
 
      done
 
