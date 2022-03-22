@@ -37,8 +37,8 @@ data:
   refresh.sh: |
     function update {
       echo "Updating config...";
-      cp /data/configLB.yml /configLB.yml;
-      cp /data/node_pod_map.json /node_pod_map.json;
+      cp /data/configLB.yml /tmp/configLB.yml; chown nginx:nginx /tmp/configLB.yml;
+      cp /data/node_pod_map.json /tmp/node_pod_map.json; chown nginx:nginx /tmp/node_pod_map.json;
     }
 
     DATA='/data/'
@@ -63,12 +63,13 @@ data:
   script.js: |
     var fs = require('fs');
     var js_yaml = global.js_yaml;
-    var mapping_path = "/node_pod_map.json";
-    var configLB_path = "/configLB.yml";
+    var mapping_path = "/tmp/node_pod_map.json";
+    var configLB_path = "/tmp/configLB.yml";
     var logs_path = "/logs/nginx_multipleLB_logs.txt";
 
-    function redirect(r, upstream) {
+    function redirect(r, upstream, _nginx_openwhisk_policy_index) {
         var args = ("?" + r.variables.args) || "";
+        args = args + "&nginx_openwhisk_policy_index=" + _nginx_openwhisk_policy_index;
         r.variables['selected_upstream'] = upstream;
         r.internalRedirect('/controllers' + r.uri + args);
     }
@@ -76,10 +77,25 @@ data:
     function select_upstream(r) {
       var selected_upstream_njs = "controllers";
       var action_tag = "";
+      var config_refresh = false;
+      var parsed_body = {};
+
       try {
-        action_tag = JSON.parse(r.variables.request_body)['tag'] || "";
+        parsed_body = JSON.parse(r.variables.request_body);
       } catch(error) {
-        action_tag = "";
+        parsed_body = {};
+      }
+
+      action_tag = parsed_body['tag'] || "";
+
+      config_refresh = parsed_body['controller_config_refresh'] || false;
+
+      if (r.method == "POST" && config_refresh == true) {
+        var new_config = fs.readFileSync("/data/configLB.yml");
+        var new_mapping = fs.readFileSync("/data/node_pod_map.json");
+
+        fs.writeFileSync("/tmp/configLB.yml", new_config);
+        fs.writeFileSync("/tmp/node_pod_map.json", new_mapping);
       }
 
       if (r.method == "POST" && action_tag != "") {
@@ -92,15 +108,38 @@ data:
             var re = new RegExp('^\/api\/v1\/namespaces\/[\w_]+\/actions\/');
             var action = r.uri.replace(re, "");
 
-            var controller_node = yaml_conf[action_tag] ? yaml_conf[action_tag].find(function(obj) { return (obj['controller'] != undefined) })['controller'] : undefined
+            var action_policy = yaml_conf[action_tag];
+            var policy_blocks = [];
+            var chosen_policy = 0;
+            var controller_node = '*'
+
+            if (action_policy) {
+              policy_blocks = action_policy['blocks'];
+              var policy_strategy = action_policy['strategy'];
+
+              if (policy_strategy == 'random') {
+                chosen_policy = Math.floor(Math.random() * policy_blocks.length);
+                controller_node = policy_blocks[chosen_policy]['controller'];
+              } else if (policy_strategy == 'platform') {
+                controller_node = '*';
+                chosen_policy = 0;
+              } else if (policy_strategy == 'best_first') {
+                chosen_policy = 0;
+                controller_node = policy_blocks[chosen_policy]['controller'];
+              } else {
+                chosen_policy = 0;
+                controller_node = policy_blocks[chosen_policy]['controller'];
+              }
+
+            }
 
             selected_upstream_njs = ((controller_node && controller_node != '*') ? mapping[controller_node] : undefined) || "controllers";
 
-            redirect(r, selected_upstream_njs);
+            redirect(r, selected_upstream_njs, chosen_policy);
           }
         })
       } else {
-        redirect(r, selected_upstream_njs)
+        redirect(r, selected_upstream_njs, 0)
       }
     }
     export default {select_upstream}
