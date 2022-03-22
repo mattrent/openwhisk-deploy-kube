@@ -17,6 +17,18 @@
 #
 -->
 
+# Modified version of openwhisk-deploy-kube
+
+The original README can be found under this section.
+This version has been modified for the work done in the "Topology-aware Serverless Function-Execution Scheduling" paper.
+The tests described in the paper can be found in the [master-test-cases](https://github.com/mattrent/openwhisk-deploy-kube/tree/master-test-cases) branch of this repo, in the `test-suite-paper` subfolder.
+
+A set of scripts used to deploy this version of OpenWhisk on Google Cloud Platform, using Terraform and Ansible, can be found at https://github.com/giusdp/ow-gcp; instructions for deployment are given in the repository's README.
+
+The source code for the modified version can be found at https://github.com/mattrent/openwhisk.
+
+___
+
 # OpenWhisk Deployment on Kubernetes
 
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0)
