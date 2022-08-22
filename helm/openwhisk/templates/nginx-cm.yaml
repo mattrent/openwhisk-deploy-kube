@@ -103,7 +103,18 @@ data:
           if (!error) {
 
             var mapping = JSON.parse(data);
-            var yaml_conf = js_yaml.load(configLB_path);
+            var base_yaml_conf = js_yaml.load(configLB_path);
+            var yaml_conf = {}
+            for (let i = 0; i < base_yaml_conf.length; i++) {
+                var _tag_name = Object.keys(base_yaml_conf[i]).filter(k => k != "strategy" && k != "followup")
+                var _strategy = base_yaml_conf[i]["strategy"]
+                var _followup = base_yaml_conf[i]["followup"]
+                yaml_conf[_tag_name] = {
+                    "strategy": _strategy,
+                    "followup": _followup,
+                    "blocks": base_yaml_conf[i][_tag_name]
+                }
+            }
 
             var re = new RegExp('^\/api\/v1\/namespaces\/[\w_]+\/actions\/');
             var action = r.uri.replace(re, "");
