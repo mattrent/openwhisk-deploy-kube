@@ -105,7 +105,7 @@ data:
             var mapping = JSON.parse(data);
             var base_yaml_conf = js_yaml.load(configLB_path);
             var yaml_conf = {}
-            for (let i = 0; i < base_yaml_conf.length; i++) {
+            for (var i = 0; i < base_yaml_conf.length; i++) {
                 var _tag_name = Object.keys(base_yaml_conf[i]).filter(k => k != "strategy" && k != "followup")
                 var _strategy = base_yaml_conf[i]["strategy"]
                 var _followup = base_yaml_conf[i]["followup"]
